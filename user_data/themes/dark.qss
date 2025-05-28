@@ -1,0 +1,103 @@
+/* General background and text */
+QWidget {
+    background-color: #1e1e1e;
+    color: #dcdcdc;
+    font-family: "Cascadia Code", "Fira Code", "Consolas", "Segoe UI", Tahoma, sans-serif;
+    font-size: 12pt;
+}
+
+/* Buttons */
+QPushButton {
+    background-color: #3a3a3a;
+    color: #eeeeee;
+    border: 1px solid #555555;
+    border-radius: 6px;
+    padding: 6px 14px;
+    transition: all 0.2s ease-in-out;
+}
+
+QPushButton:hover {
+    background-color: #505050;
+    transform: scale(1.03);
+}
+
+QPushButton:pressed {
+    background-color: #2a2a2a;
+    transform: scale(0.97);
+}
+
+/* Line edits (text inputs) */
+QLineEdit, QTextEdit {
+    background-color: #2a2a2a;
+    border: 1px solid #555555;
+    border-radius: 5px;
+    color: #f0f0f0;
+    padding: 4px 8px;
+}
+
+/* Combo boxes */
+QComboBox {
+    background-color: #2a2a2a;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: #f0f0f0;
+}
+
+/* Toolbars */
+QToolBar {
+    background-color: #2a2a2a;
+    border-bottom: 1px solid #444444;
+    padding: 4px;
+}
+
+/* Scrollbars */
+QScrollBar:vertical {
+    background: #1e1e1e;
+    width: 12px;
+    margin: 20px 0 20px 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #555555;
+    min-height: 20px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #777777;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    background: none;
+}
+
+/* Splitters */
+QSplitter {
+    background-color: #2a2a2a;
+}
+
+QSplitter::handle {
+    background-color: #444444;
+}
+
+/* Terminal widget (make sure QTextEdit objectName is set to 'terminal') */
+QTextEdit#terminal {
+    background-color: #121212;
+    color: #33ff33;
+    font-family: "Cascadia Code", "Consolas", monospace;
+    font-size: 11pt;
+    border: none;
+}
+
+/* Focused widget highlight */
+QLineEdit:focus, QTextEdit:focus, QComboBox:focus {
+    border: 1px solid #8888ff;
+    background-color: #303030;
+}
+
+/* Selection color */
+QWidget:selected {
+    background-color: #505050;
+    color: #ffffff;
+}
