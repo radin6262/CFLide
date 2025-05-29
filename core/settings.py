@@ -1,7 +1,7 @@
 import json
 import os
 
-USER_DATA_DIR = "cfl/user_data"
+USER_DATA_DIR = "user_data"
 SETTINGS_PATH = os.path.join(USER_DATA_DIR, "settings.json")
 THEMES_DIR = os.path.join(USER_DATA_DIR, "themes")
 
