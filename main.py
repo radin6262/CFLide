@@ -1,152 +1,155 @@
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QSplitter, QToolBar,
-    QMessageBox, QCheckBox, QComboBox
+    QApplication, QWidget, QVBoxLayout, QProgressBar, QLabel
 )
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QStyle
-from PySide6.QtGui import QAction
-from PySide6.QtCore import Qt, QTimer
-from core.plugins import download_plugin_list, install_plugin
-from core.editor import Editor
-from core.file_manager import FileManager
-from core.terminal import TerminalWidget
-from core.settings import load_settings, save_settings
-from core.settings_ui import SettingsUI  # import the settings UI widget
+from PySide6.QtCore import Qt, QTimer, QCoreApplication, QThread
+from PySide6.QtGui import QFont, QColor
 import sys
-class CFL(QMainWindow):
-    
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("CFL IDE")
-        self.setGeometry(100, 100, 1200, 800)
+import subprocess
+import os
 
-        self.settings = load_settings()
-        self.autosave_enabled = self.settings.get("autosave", False)
+# --- Splash Screen Widget ---
+
+class SplashScreen(QWidget):
+    """
+    A simple splash screen that runs for a set duration before launching the main application.
+    """
+    def __init__(self, main_app_script="main.py"):
+        super().__init__()
+        self.main_app_script = main_app_script
+        self.setWindowTitle("CFL IDE Loading")
+        self.setGeometry(300, 300, 500, 200)
+
+        # Remove window frame, use a custom background, and center it
+        self.setWindowFlag(Qt.FramelessWindowHint)
+        self.center_window()
 
         self.init_ui()
-        self.apply_theme(self.settings.get("theme", "dark"))
+        self.show()
 
-        # Autosave timer
-        self.autosave_timer = QTimer(self)
-        self.autosave_timer.timeout.connect(self.autosave)
-        self.autosave_timer.start(30000)
-        self.fullscreen = False
-        self.show_startup_alert()
-    def show_startup_alert(self):
-        QMessageBox.information(
-            self,
-            "WARNING!",
-            "if something goes wrong, Please read the README in GitHub."
-        )
+        # Setup 4-second loading simulation
+        self.loading_duration_ms = 4000 
+        
+        # 1. Timer to close the splash screen and start main.py
+        self.launch_timer = QTimer(self)
+        self.launch_timer.timeout.connect(self.close_splash_and_start_main)
+        self.launch_timer.start(self.loading_duration_ms)
+        
+        # 2. Timer to animate the progress bar smoothly
+        self.progress_timer = QTimer(self)
+        self.progress_timer.timeout.connect(self.update_progress)
+        self.progress_timer.start(40) # Update every 40ms for 100 updates total
+        
+        self.progress_increment = 100 / (self.loading_duration_ms / 40)
+        self.current_progress = 0
 
 
     def init_ui(self):
-        # Main widget and layout
-        self.main_widget = QWidget()
-        self.main_layout = QVBoxLayout()
-        self.main_widget.setLayout(self.main_layout)
-        self.setCentralWidget(self.main_widget)
+        """Sets up the UI elements and styling for the splash screen."""
+        self.setStyleSheet("""
+            QWidget {
+                background-color: white; /* Dark background similar to IDE theme */
+                border-radius: 15px;
+            }
+            QLabel#title_label {
+                color: #61afef; /* Light blue */
+                font-size: 24pt;
+                font-weight: bold;
+            }
+            QProgressBar {
+                border: 1px solid #56b6c2; 
+                border-radius: 7px;
+                text-align: center;
+                background-color: #3e4451;
+            }
+            QProgressBar::chunk {
+                background-color: #56b6c2; /* Teal color */
+                border-radius: 7px;
+            }
+        """)
 
-        # Splitter with file manager and editor
-        self.splitter_top = QSplitter(Qt.Horizontal)
-        self.file_manager = FileManager()
+        layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(30, 30, 30, 30)
+
+        # Title Label
+        title_label = QLabel("CFLide v1.0.1")
+        title_label.setObjectName("title_label")
+        title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title_label)
         
+        # Status Label
+        self.status_label = QLabel("Initializing core modules...")
+        self.status_label.setFont(QFont("Segoe UI", 10))
+        self.status_label.setStyleSheet("color: #abb2bf;")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.status_label)
 
-        self.editor = Editor()
-        self.splitter_top.addWidget(self.file_manager)
-        self.splitter_top.addWidget(self.editor)
-        self.splitter_top.setSizes([300, 900])
+        # Progress Bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(100)
+        self.progress_bar.setValue(0)
+        layout.addWidget(self.progress_bar)
 
-        # Terminal at bottom
-        self.terminal = TerminalWidget()
-        
-        self.terminal.setFixedHeight(200)
+        self.setLayout(layout)
 
-        # Add widgets to main layout
-        self.main_layout.addWidget(self.splitter_top)
-        self.main_layout.addWidget(self.terminal)
+    def center_window(self):
+        """Centers the splash screen on the desktop."""
+        qr = self.frameGeometry()
+        # Use the primary screen to get centering reference
+        cp = QApplication.primaryScreen().availableGeometry().center() 
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
-        # Connect file open request
-        self.file_manager.file_open_requested.connect(self.editor.load_file)
-
-        # Settings page (hidden by default)
-        self.settings_ui = SettingsUI(self)
-        self.settings_ui.hide()
-
-        # Toolbar setup
-        self.init_toolbar()
-
-    def init_toolbar(self):
-        toolbar = QToolBar("Main Toolbar")
-        self.addToolBar(toolbar)
-
-        # Save button with standard Save icon
-        save_icon = self.style().standardIcon(QStyle.SP_DialogSaveButton)
-        save_action = QAction(save_icon, "Save", self)
-        save_action.triggered.connect(self.save_current)
-        toolbar.addAction(save_action)
-
-        # Toggle Settings button with standard Preferences icon
-        settings_icon = self.style().standardIcon(QStyle.SP_FileDialogDetailedView)
-        self.toggle_settings_action = QAction(settings_icon, "Settings", self)
-        self.toggle_settings_action.setCheckable(True)
-        self.toggle_settings_action.triggered.connect(self.toggle_settings_view)
-        toolbar.addAction(self.toggle_settings_action)
-
-    def toggle_settings_view(self, checked):
-        if checked:
-            # Show settings UI, hide main editor layout
-            self.main_layout.removeWidget(self.splitter_top)
-            self.main_layout.removeWidget(self.terminal)
-            self.splitter_top.hide()
-            self.terminal.hide()
-
-            self.main_layout.addWidget(self.settings_ui)
-            self.settings_ui.show()
+    def update_progress(self):
+        """Updates the progress bar value and status label based on time elapsed."""
+        if self.current_progress < 100:
+            self.current_progress += self.progress_increment
+            self.progress_bar.setValue(min(100, int(self.current_progress))) # Max 100
+            
+            # Simple status updates
+            if self.current_progress < 30:
+                 self.status_label.setText("Initializing core modules...")
+            elif self.current_progress < 60:
+                 self.status_label.setText("Loading plugins and settings...")
+            elif self.current_progress < 90:
+                 self.status_label.setText("Compiling UI...")
+            else:
+                 self.status_label.setText("Ready to launch.")
         else:
-            # Hide settings UI, show main editor layout
-            self.main_layout.removeWidget(self.settings_ui)
-            self.settings_ui.hide()
+            # If timer is still running, ensure progress is maxed out
+            self.progress_bar.setValue(100)
 
-            self.main_layout.addWidget(self.splitter_top)
-            self.main_layout.addWidget(self.terminal)
-            self.splitter_top.show()
-            self.terminal.show()
 
-    def save_current(self):
-        if not self.editor.save_current_file():
-            QMessageBox.warning(self, "Save Error", "Could not save the file.")
+    def close_splash_and_start_main(self):
+        """
+        Closes the splash screen, stops the timers, and starts the main application.
+        """
+        # Stop timers
+        self.launch_timer.stop()
+        self.progress_timer.stop()
 
-    def toggle_autosave(self, state):
-        self.autosave_enabled = bool(state)
-        self.settings["autosave"] = self.autosave_enabled
-        save_settings(self.settings)
+        # Execute main.py in a separate process
+        try:
+            # Use the same Python executable that is running the splash screen
+            python_executable = sys.executable
+            
+            # Launch main.py in a new, non-blocking process
+            subprocess.Popen([python_executable, self.main_app_script])
+            print(f"Successfully launched: {python_executable} {self.main_app_script}")
 
-    def autosave(self):
-        if self.autosave_enabled:
-            self.editor.save_current_file()
+        except Exception as e:
+            print(f"Failed to launch main application ({self.main_app_script}): {e}")
+            # Optionally show an error message box here
 
-    def apply_theme(self, theme_name):
-        from core.settings import load_theme
-        stylesheet = load_theme(theme_name)
-        if stylesheet:
-            self.setStyleSheet(stylesheet)
-        else:
-            self.setStyleSheet("")
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_F11:
-            self.toggle_fullscreen()
-        else:
-            super().keyPressEvent(event)
+        # Close the splash application process
+        QCoreApplication.instance().quit()
 
-    def toggle_fullscreen(self):
-        if self.fullscreen:
-            self.showNormal()
-        else:
-            self.showFullScreen()
-        self.fullscreen = not self.fullscreen
-if __name__ == "__main__":
+
+if __name__ == '__main__':
+    # NOTE: Ensure your main CFL class application is in a file named 'main.py' 
+    # and placed in the same directory as this script.
     app = QApplication(sys.argv)
-    window = CFL()
-    window.show()
+    
+    splash = SplashScreen(main_app_script="app.py") 
     sys.exit(app.exec())
