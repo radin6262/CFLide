@@ -53,7 +53,7 @@ QToolBar {
 
 /* Scrollbars */
 QScrollBar:vertical {
-    background: #ffffff;
+    background: #ffffffff;
     width: 12px;
     margin: 20px 0 20px 0;
 }
@@ -96,7 +96,7 @@ QTextEdit#terminal {
 /* Focused widget highlight */
 QLineEdit:focus, QTextEdit:focus, QComboBox:focus {
     border: 1px solid #0066cc;
-    background-color: #f8f8f8;
+    background-color: #ffffffff;
 }
 
 /* Selection color */
