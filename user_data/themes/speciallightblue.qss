@@ -1,6 +1,6 @@
 /* General background and text */
 QWidget {
-    background-color: #ffffff;
+    background-color: #D3A8A4FF;
     color: #1e1e1e;
     font-family: "Cascadia Code", "Fira Code", "Consolas", "Segoe UI", Tahoma, sans-serif;
     font-size: 12pt;
@@ -46,7 +46,7 @@ QComboBox {
 
 /* Toolbars */
 QToolBar {
-    background-color: #f4f4f4;
+    background-color: #D3A8A4FF;
     border-bottom: 1px solid #bbbbbb;
     padding: 4px;
 }
@@ -83,7 +83,7 @@ QSplitter::handle {
 
 /* Terminal widget (QTextEdit with objectName='terminal') styled like VS Code Light+ */
 QTextEdit#terminal {
-    background-color: #f9f9f9;
+    background-color: #D3A8A4FF;
     color: #000000;
     font-family: "Cascadia Code", "Consolas", monospace;
     font-size: 11pt;

@@ -22,7 +22,7 @@ class CFL(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("CFL IDE - Professional Edition")
+        self.setWindowTitle("CFL IDE - In-Development Edition")
         self.setGeometry(100, 100, 1400, 900) 
 
         self.settings = load_settings()
