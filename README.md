@@ -1,5 +1,8 @@
 # CFL IDE
 
+> **Warning: this project is discontinued and you need to use GW IDE**
+
+
 **Clean. Fast. Lightweight.**
 
 CFL IDE is a minimalist, extensible desktop IDE with support for Python, C++, and C out of the box. Built with PySide6.
